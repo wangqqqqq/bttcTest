@@ -57,6 +57,17 @@ export default class SDKClient extends ContractsBase {
     return tokenID
   }
 
+  async isExistsMintERC721(token: address, tokenId: string, options?: SendOptions) {
+    if (options && (!tokenId || !token)) {
+      throw new Error('token or tokenId is missing')
+    }
+
+    const isExists = this.getParentMintERC721TokenContract(token, options.parent)
+    .methods.exists(tokenId)
+    .call()
+    return isExists
+  }
+
   async ownerOfERC721(token: address, tokenId: string, options?: SendOptions) {
     if (options && (!tokenId || !token)) {
       throw new Error('token or tokenId is missing')
@@ -66,6 +77,36 @@ export default class SDKClient extends ContractsBase {
     .methods.ownerOf(tokenId)
     .call()
     return owner
+  }
+
+  async mintERC20Token(token: address, amount: BN | string, options?: SendOptions) {
+    if (options && (!options.from || !amount || !token)) {
+      throw new Error('options.from, amount or token is missing')
+    }
+
+    const txObject = this.getParentERC20TokenContract(token, options.parent).methods.mint(amount)
+
+    const onRootChain = options.parent ? true : false
+    const web3Options = await this.web3Client.fillOptions(txObject, onRootChain, options)
+    if (web3Options.encodeAbi) {
+      return Object.assign(web3Options, { data: txObject.encodeABI(), to: token })
+    }
+    return this.web3Client.send(txObject, web3Options, options)
+  }
+
+  async mintERC20TokenTo(token: address, to: address, amount: BN | string, options?: SendOptions) {
+    if (options && (!options.from || !to || !amount || !token)) {
+      throw new Error('options.from, to, amount or token is missing')
+    }
+
+    const txObject = this.getParentMintERC20TokenContract(token, options.parent).methods.mint(to,amount)
+
+    const onRootChain = options.parent ? true : false
+    const web3Options = await this.web3Client.fillOptions(txObject, onRootChain, options)
+    if (web3Options.encodeAbi) {
+      return Object.assign(web3Options, { data: txObject.encodeABI(), to: token })
+    }
+    return this.web3Client.send(txObject, web3Options, options)
   }
 
   async transferERC20Tokens(token: address, to: address, amount: BN | string, options?: SendOptions) {

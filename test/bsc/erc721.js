@@ -1,17 +1,16 @@
-const { getBscClient, pos } = require('../utils/utils')
 const { contractOwnerETHBSC,user } = require('../utils/config')
-const {subtract, evaluate, log, pi, pow, round, sqrt} = require('mathjs')
+const { write,find,remove } = require('../utils/publicMethods')
+const { getBscClient, pos } = require('../utils/utils')
 const BigNumber = require('bignumber.js')
 const wait = require('../utils/wait')
 const chai = require('chai')
 const assert = chai.assert
 const util = require('util')
-var fs = require('fs')
 
-const userAddr = user.address
-const userPk = user.privateKey
-const bscClient = getBscClient(userPk,userAddr)
 const bscClientContractOwner = getBscClient(contractOwnerETHBSC.privateKey,contractOwnerETHBSC.address)
+const userPk = user.privateKey
+const userAddr = user.address
+const bscClient = getBscClient(userPk,userAddr)
 
 const erc721MainToken = pos.BSC.erc721Main
 const erc721SideToken = pos.BSC.erc721Side
@@ -21,31 +20,34 @@ const merc721SideToken = pos.BSC.merc721Side
 const merc721PredicateMain = pos.BSC.merc721Predicate
 
 describe('bsc erc721 test', function() {
-    this.timeout(1000000)
+    this.timeout(2000000)
     describe('#no mint', function() {
-        const tokenId = '1003'
-        it('deposit', async function() {
+        // let tokenId = Math.round(Math.random() * (100000 - 1)) + 1
+        let tokenId = 7537
+        it('deposit & burn', async function() {
             // balance before deposit
+            let ownerBalanceBefore = await bscClient.balanceOfERC721(contractOwnerETHBSC.address, erc721MainToken, {parent:true})
+            let ownerBalanceAfter
+            // mint
+            console.log(`====no mintERC721 finall tokenId====`, tokenId)
+            await bscClientContractOwner.mintERC721Token(erc721MainToken,tokenId,{from:contractOwnerETHBSC.address, parent:true})
+            do{
+                await wait(20)
+                ownerBalanceAfter = await bscClient.balanceOfERC721(contractOwnerETHBSC.address, erc721MainToken, {parent:true})
+            }while(ownerBalanceAfter == ownerBalanceBefore)
+
+            let ownerBeforeMain
+            // transfer
+            await bscClientContractOwner.transferERC721Tokens(erc721MainToken, userAddr, tokenId, {from:contractOwnerETHBSC.address, parent:true})
+
+            do{
+                await wait(20)
+                ownerBeforeMain = await bscClient.ownerOfERC721(erc721MainToken,tokenId,{parent:true})
+
+            }while(ownerBeforeMain.toLowerCase().substr(2) != userAddr.toLowerCase().substr(2))
+
             let userBalanceBeforeMain = await bscClient.balanceOfERC721(userAddr, erc721MainToken, {parent:true})
             console.log(`====userBalanceBeforeMain====`, userBalanceBeforeMain)
-            if (userBalanceBeforeMain == 0){
-                let ownerBalanceBefore = await bscClient.balanceOfERC721(contractOwnerETHBSC.address, erc721MainToken, {parent:true})
-                let ownerBalanceAfter
-                // mint
-                await bscClientContractOwner.mintERC721Token(erc721MainToken,tokenId,{from:contractOwnerETHBSC.address, parent:true})
-                do{
-                    await wait(30)
-                    ownerBalanceAfter = await bscClient.balanceOfERC721(contractOwnerETHBSC.address, erc721MainToken, {parent:true})
-                }while(ownerBalanceAfter-ownerBalanceBefore == 0)
-
-                // transfer
-                await bscClientContractOwner.transferERC721Tokens(erc721MainToken, userAddr, tokenId, {from:contractOwnerETHBSC.address, parent:true})
-
-                do{
-                    await wait(30)
-                    userBalanceBeforeMain = await bscClient.balanceOfERC721(userAddr, erc721MainToken, {parent:true})
-                }while(userBalanceBeforeMain == 0)
-            }
             let userBalanceBeforeSide = await bscClient.balanceOfERC721(userAddr, erc721SideToken, {parent:false})
             console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
             const predicateBalanceBeforeMain = await bscClient.balanceOfERC721(erc721PredicateMain, erc721MainToken, {parent:true})
@@ -69,7 +71,6 @@ describe('bsc erc721 test', function() {
             await wait(60)
             while (true) {
                 const depositReceipt = bscClient.web3Client.getParentWeb3().eth.getTransactionReceipt(depositTx.transactionHash)
-                console.log(`====depositReceipt====`, depositReceipt)
                 userBalanceAfterSide = await bscClient.balanceOfERC721(userAddr, erc721SideToken, {parent:false})
                 console.log(`====userBalanceAfterSide====`, userBalanceAfterSide)
                 console.log(`====userBalanceAfterSide - userBalanceBeforeSide====`, new BigNumber(userBalanceAfterSide).minus(userBalanceBeforeSide).toString())
@@ -91,20 +92,14 @@ describe('bsc erc721 test', function() {
 
             const predicateBalanceAfterMain = await bscClient.balanceOfERC721(erc721PredicateMain, erc721MainToken, {parent:true})
             console.log(`====predicateBalanceAfterMain====`, predicateBalanceAfterMain)
-            console.log(`====predicateBalanceAfterMain - predicateBalanceBeforeMain====`, new BigNumber(predicateBalanceAfterMain).minus(predicateBalanceBeforeMain).toString())
+            assert.equal(new BigNumber(predicateBalanceAfterMain).minus(predicateBalanceBeforeMain).toString(), 1)
 
             const ownerOfAfterMain = await bscClient.ownerOfERC721(erc721MainToken, tokenId, {parent:true})
             console.log(`====ownerOfAfterMain====`, ownerOfAfterMain)
             const ownerOfAfterSide = await bscClient.ownerOfERC721(erc721SideToken, tokenId, {parent:false})
             console.log(`====ownerOfAfterSide====`, ownerOfAfterSide)
-            assert.equal(ownerOfAfterMain.toLowerCase(), erc721PredicateMain.toLowerCase())
+            assert.equal(ownerOfAfterMain.toLowerCase().substr(2), erc721PredicateMain.toLowerCase().substr(2))
             assert.equal(ownerOfAfterSide, userAddr)
-
-        })
-        it('burn', async function() {
-            // balance before burn
-            let userBalanceBeforeSide = await bscClient.balanceOfERC721(userAddr, erc721SideToken, {parent:false})
-            console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
 
             // burn
             const tx = await bscClient.burnERC721({ childToken: erc721SideToken, tokenId:tokenId}, {
@@ -115,15 +110,12 @@ describe('bsc erc721 test', function() {
             console.log(`====burnTx====`, tx)
 
             // balance after burn
-            let userBalanceAfterSide = await bscClient.balanceOfERC721(userAddr, erc721SideToken, {parent:false})
-            console.log(`====userBalanceAfterSide====`, userBalanceAfterSide)
-            assert.equal(new BigNumber(userBalanceBeforeSide).minus(userBalanceAfterSide).toString(), 1)
+            let userBalanceAfterBurnSide = await bscClient.balanceOfERC721(userAddr, merc721SideToken, {parent:false})
+            console.log(`====userBalanceAfterBurnSide====`, userBalanceAfterBurnSide)
+            assert.equal(new BigNumber(userBalanceBeforeSide), new BigNumber(userBalanceAfterBurnSide))
 
-            fs.writeFile('./burnRecord', '\nbsc-erc721BurnHash: '+tx.transactionHash,{ 'flag': 'a' }, function(error) {
-                if (error){
-                    console.log('写入burn记录失败')
-                }
-            })
+            // write
+            assert.equal(await write('bsc-erc721BurnHash:'+tx.transactionHash+',tokenId:'+tokenId),true)
         })
         it('exit', async function() {
             // balance before exit
@@ -131,8 +123,10 @@ describe('bsc erc721 test', function() {
             console.log(`====userBalanceBeforeMain====`, userBalanceBeforeMain)
 
             // exit
-            const burnHash = '0xd1ec8d5442dba4713f8289cd26ef1b653981caadce058c975a4435c3517273ce'
-            const tx = await bscClient.burnERC721(burnHash,{
+            let map = await find('bsc-erc721BurnHash')
+            const burnHash = map.get('hash')
+            const tokenId = map.get('tokenId')
+            const tx = await bscClient.exitERC721(burnHash,{
                 from: userAddr,
                 legacyProof: true,
                 parent: true,
@@ -145,29 +139,43 @@ describe('bsc erc721 test', function() {
             assert.equal(new BigNumber(userBalanceAfterMain).minus(userBalanceBeforeMain).toString(), 1)
             const ownerOfAfterMain = await bscClient.ownerOfERC721(erc721MainToken, tokenId, {parent:true})
             console.log(`====ownerOfAfterMain====`, ownerOfAfterMain)
-            assert.equal(ownerOfAfterMain.substr(2), userAddr.toLowerCase().substr(2))
+            assert.equal(ownerOfAfterMain.toLowerCase().substr(2), userAddr.toLowerCase().substr(2))
+
+            // remove
+            assert.equal(await remove(burnHash),true)
         })
     })
     describe('#mint', function() {
-        const tokenId = '1003'
-        it('deposit', async function() {
-            // balance before deposit
-            let userBalanceBeforeMain = await bscClient.balanceOfERC721(userAddr, merc721MainToken, {parent:true})
-            console.log(`====userBalanceBeforeMain====`, userBalanceBeforeMain)
-            if (userBalanceBeforeMain == 0){
-                let ownerBalanceBefore = await bscClient.balanceOfERC721(contractOwnerETHBSC.address, merc721MainToken, {parent:true})
-                let ownerBalanceAfter
+        let tokenId = Math.round(Math.random() * (100000 - 1)) + 1
+        it('deposit & burn', async function() {
+            let isExists = await bscClient.isExistsMintERC721(merc721MainToken,tokenId,{parent:true})
+            while (isExists) {
+                let owner = await bscClient.ownerOfERC721(merc721MainToken,tokenId,{parent:true})
+                let isOwner = owner.toLowerCase().substr(2).toString()==userAddr.toLowerCase().substr(2).toString()
+                if (isOwner) {
+                    break;
+                }
+                tokenId = Math.round(Math.random*1000000)
+                isExists = await bscClient.isExistsMintERC721(merc721MainToken,tokenId,{parent:true})
+            }
+            console.log(`====mintERC721 finall tokenId====`, tokenId)
+            if (!isExists){
                 // mint
                 await bscClientContractOwner.mintERC721TokenTo(merc721MainToken,userAddr,tokenId,{from:contractOwnerETHBSC.address, parent:true})
                 do{
-                    await wait(30)
-                    userBalanceBeforeMain = await bscClient.balanceOfERC721(userAddr, merc721MainToken, {parent:true})
-                }while(userBalanceBeforeMain == 0)
+                    await wait(20)
+                    userBalanceBeforeMain = await bscClient.isExistsMintERC721(merc721MainToken,tokenId,{parent:true})
+                }while(!isExists)
             }
+            // balance before deposit
+            let userBalanceBeforeMain = await bscClient.balanceOfERC721(userAddr, merc721MainToken, {parent:true})
+            console.log(`====userBalanceBeforeMain====`, userBalanceBeforeMain)
             let userBalanceBeforeSide = await bscClient.balanceOfERC721(userAddr, merc721SideToken, {parent:false})
             console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
             const predicateBalanceBeforeMain = await bscClient.balanceOfERC721(merc721PredicateMain, merc721MainToken, {parent:true})
             console.log(`====predicateBalanceBeforeMain====`, predicateBalanceBeforeMain)
+            let ownerBeforeMain = await bscClient.ownerOfERC721(merc721MainToken,tokenId,{parent:true})
+            assert.equal(ownerBeforeMain.toLowerCase().substr(2), userAddr.toLowerCase().substr(2))
 
             // approve
             let isApproved = await bscClient.isApprovedERC721ForDeposit(merc721MainToken, tokenId, {from:userAddr})
@@ -209,20 +217,14 @@ describe('bsc erc721 test', function() {
 
             const predicateBalanceAfterMain = await bscClient.balanceOfERC721(merc721PredicateMain, merc721MainToken, {parent:true})
             console.log(`====predicateBalanceAfterMain====`, predicateBalanceAfterMain)
-            console.log(`====predicateBalanceAfterMain - predicateBalanceBeforeMain====`, new BigNumber(predicateBalanceAfterMain).minus(predicateBalanceBeforeMain).toString())
+            assert.equal(new BigNumber(predicateBalanceAfterMain).minus(predicateBalanceBeforeMain).toString(), 1)
 
             const ownerOfAfterMain = await bscClient.ownerOfERC721(merc721MainToken, tokenId, {parent:true})
             console.log(`====ownerOfAfterMain====`, ownerOfAfterMain)
             const ownerOfAfterSide = await bscClient.ownerOfERC721(merc721SideToken, tokenId, {parent:false})
             console.log(`====ownerOfAfterSide====`, ownerOfAfterSide)
-            assert.equal(ownerOfAfterMain.toLowerCase(), merc721PredicateMain.toLowerCase())
+            assert.equal(ownerOfAfterMain.toLowerCase().substr(2), merc721PredicateMain.toLowerCase().substr(2))
             assert.equal(ownerOfAfterSide, userAddr)
-
-        })
-        it('burn', async function() {
-            // balance before burn
-            let userBalanceBeforeSide = await bscClient.balanceOfERC721(userAddr, merc721SideToken, {parent:false})
-            console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
 
             // burn
             const tx = await bscClient.burnERC721({ childToken: merc721SideToken, tokenId:tokenId}, {
@@ -233,15 +235,12 @@ describe('bsc erc721 test', function() {
             console.log(`====burnTx====`, tx)
 
             // balance after burn
-            let userBalanceAfterSide = await bscClient.balanceOfERC721(userAddr, merc721SideToken, {parent:false})
-            console.log(`====userBalanceAfterSide====`, userBalanceAfterSide)
-            assert.equal(new BigNumber(userBalanceBeforeSide).minus(userBalanceAfterSide).toString(), 1)
+            let userBalanceAfterBurnSide = await bscClient.balanceOfERC721(userAddr, merc721SideToken, {parent:false})
+            console.log(`====userBalanceAfterBurnSide====`, userBalanceAfterBurnSide)
+            assert.equal(new BigNumber(userBalanceBeforeSide), new BigNumber(userBalanceAfterBurnSide))
 
-            fs.writeFile('./burnRecord', '\nbsc-merc721BurnHash: '+tx.transactionHash,{ 'flag': 'a' }, function(error) {
-                if (error){
-                    console.log('写入burn记录失败')
-                }
-            })
+            // write
+            assert.equal(await write('bsc-merc721BurnHash:'+tx.transactionHash+',tokenId:'+tokenId),true)
         })
         it('exit', async function() {
             // balance before exit
@@ -249,8 +248,10 @@ describe('bsc erc721 test', function() {
             console.log(`====userBalanceBeforeMain====`, userBalanceBeforeMain)
 
             // exit
-            const burnHash = '0x82bacc52c3e5bf05d7d771619b92716e0af71aea6e741f88b218c5ec128ac94a'
-            const tx = await bscClient.burnERC721(burnHash,{
+            let map = await find('bsc-merc721BurnHash')
+            const burnHash = map.get('hash')
+            const tokenId = map.get('tokenId')
+            const tx = await bscClient.exitERC721(burnHash,{
                 from: userAddr,
                 legacyProof: true,
                 parent: true,
@@ -263,7 +264,10 @@ describe('bsc erc721 test', function() {
             assert.equal(new BigNumber(userBalanceAfterMain).minus(userBalanceBeforeMain).toString(), 1)
             const ownerOfAfterMain = await bscClient.ownerOfERC721(merc721MainToken, tokenId, {parent:true})
             console.log(`====ownerOfAfterMain====`, ownerOfAfterMain)
-            assert.equal(ownerOfAfterMain.substr(2), userAddr.toLowerCase().substr(2))
+            assert.equal(ownerOfAfterMain.toLowerCase().substr(2), userAddr.toLowerCase().substr(2))
+
+            // remove
+            assert.equal(await remove(burnHash),true)
         })
     })
 })

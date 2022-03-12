@@ -7,6 +7,8 @@ const { ChildERC20 } = require('./ChildERC20')
 const { ChildERC721 } = require('./ChildERC721')
 const { DummyMintableERC721 } = require('./DummyMintableERC721')
 const { DummyERC721 } = require('./DummyERC721')
+const { DummyMintableERC20 } = require('./DummyMintableERC20')
+const { DummyERC20 } = require('./DummyERC20')
 
 //import console from 'console'
 
@@ -52,6 +54,16 @@ export default class ContractsBase {
     const web3 = parent ? this.web3Client.parentWeb3 : this.web3Client.web3
     //const abi = this.network.abi('ChildERC20', 'pos')
     return new web3.eth.Contract(ChildERC20, token)
+  }
+
+  public getParentERC20TokenContract(token: address, parent: boolean = false) {
+    const web3 = parent ? this.web3Client.parentWeb3 : this.web3Client.web3
+    return new web3.eth.Contract(DummyERC20, token)
+  }
+
+  public getParentMintERC20TokenContract(token: address, parent: boolean = false) {
+    const web3 = parent ? this.web3Client.parentWeb3 : this.web3Client.web3
+    return new web3.eth.Contract(DummyMintableERC20, token)
   }
 
   public getPOSERC721TokenContract(token: address, parent: boolean = false) {

@@ -1,4 +1,4 @@
-const { getEthClient, getTronWebInstance, from, pos } = require('../utils/utils')
+const { getEthClient, from, pos } = require('../utils/utils')
 const {subtract, evaluate, log, pi, pow, round, sqrt} = require('mathjs')
 const BigNumber = require('bignumber.js')
 const wait = require('../utils/wait')
@@ -9,7 +9,6 @@ var web3 = require('web3')
 var fs = require('fs')
 
 const ethClient = getEthClient()
-const tronWeb = getTronWebInstance()
 
 const erc721MainToken = pos.ETH.erc721Main
 const erc721SideToken = pos.ETH.erc721Side
