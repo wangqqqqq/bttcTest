@@ -34,6 +34,7 @@ const find = async (content) => {
                         const res2 = res1[1].split(",")
                         map.set("hash", res2[0])
                         map.set(res2[1], res1[2])
+                        break;
                     }
                 }
             }
@@ -49,14 +50,18 @@ const remove = async (content) => {
                 console.log('读取记录失败')
             } else {
                 const array = data.toString().split("\n")
+                console.log("content: "+content)
                 for(i in array) {
+                    console.log("array[i]: "+array[i])
                     if (array[i].includes(content)) {
-                        data.split(array[i],'')
-                        fs.writeFile('./burnRecord', data, function(error) {
+                        console.log("baohan")
+                        const newData = data.toString().replace(array[i],'')
+                        fs.writeFile('./burnRecord', newData, function(error) {
                             if (error){
                                 console.log('删除记录失败')
                             }
                         })
+                        return resolve(true);
                     }
                 }
             }

@@ -35,6 +35,15 @@ export default class ContractsBase {
     }
   }
 
+
+  public getEtherBalance(addr: address, parent: boolean = false) {
+    if (parent) {
+      return this.web3Client.parentWeb3.eth.getBalance(addr)
+    } else {
+      return this.web3Client.web3.eth.getBalance(addr)
+    }
+  }
+
   public getERC20TokenContract(token: address, parent: boolean = false) {
     const web3 = parent ? this.web3Client.parentWeb3 : this.web3Client.web3
     const abi = this.network.abi('ChildERC20')

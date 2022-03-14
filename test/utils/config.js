@@ -19,6 +19,9 @@ module.exports = {
       chainManagerAddress: 'TC7eV5sBCL1BsUBbNweWKxTxbsCoUUs2U6', // Address of RootChainManagerProxy
       rootChain: 'THqMuJHeBKYQ1yF9HG7qfyCvELZKYAvwTC', // Address of RootChainProxy
 
+      trxMain:'0xff00000000000000000000000000000000000001',
+      trxSide:'0x555731d4118d92be327f8747d6e85f22d8194802',
+
       erc20Main: '0x877512DEB5ED8061624C72A2441A4F12FC2A73D0',// BTT
       erc20Side: '0x0000000000000000000000000000000000001010',// BTT
 
@@ -31,16 +34,19 @@ module.exports = {
       merc721Main: '0x2FA5B0E4CD227A914293EAD542DF3A5EB064B2C5',
       merc721Side: '0x3af62930173773403E66D8489718e86D3935A6bb',
 
-      etherPredicateMain: '0x9EFE2061469D3DDCF1B4E8F3F9514897A9107368',
-      erc20PredicateMain: '0xE41ECD2E5BD49A8EBAA62F540CEE653028D307EF',
-      merc20PredicateMain: '0x03AC2CC857E8A67D74064DE0C204E288D10864A7',
-      erc721PredicateMain: '0xD66B4AE9C5F86A2838565D8A2C7D30257A3AC655',
-      merc721PredicateMain: '0x654A2D180D01EE73AF2671A306892886FBCCFCE9',
+      etherPredicate: 'TQTtCPLNFjhZXTSHWbgo7gq9kYRwGNma9F',
+      erc20Predicate: 'TWmPxvPTCErg6bor9L4GGznxbtVnVVXggw',
+      merc20Predicate: 'TAJdHZM1m4sNvftDU8wVddouW8wRB9kXdU',
+      erc721Predicate: 'TVWx8w5tkwtKQA5TuQN2RszTx46wp4ZCor',
+      merc721Predicate: 'TKCn7HNHC5iG7mMjrmqrSKLbdcV6aWrzeT',
 
     },
     ETH: {
       chainManagerAddress: '0x7b2d087a35d9c465b88c4cdde3ca086fea78ce67', // Address of RootChainManagerProxy
       rootChain: '0xcbb0283e103821fd96116dea52690b802f26712d', // Address of RootChainProxy
+
+      ethMain:'0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+      ethSide:'0x871df0b76dcff5adf966da2286eea61911655ec4',
 
       erc20Main: '0xa09ebFA5c71a6E2faec8d5D6e31d6e1D5ab0136c',
       erc20Side: '0x4fEe5fB6554EA6d456C02628728152cF9761a2ba',
@@ -64,6 +70,9 @@ module.exports = {
     BSC: {
       chainManagerAddress: '0xba46e673224215be204e0752524b6c3da36f9664', // Address of RootChainManagerProxy
       rootChain: '0xce08027af1c8c719dafb4a6beb0d4c95b459237d', // Address of RootChainProxy
+
+      bnbMain:'0xff00000000000000000000000000000000000002',
+      bnbSide:'0xa9afb96c4778794dd0a30ce287c5e94ca6eaf419',
 
       erc20Main: '0x13f033B803615B88A28B1671dEcdA8C7bbDC0924',
       erc20Side: '0xC5aa114EBD8046D5Ce16589F69D04455BEF98Cab',

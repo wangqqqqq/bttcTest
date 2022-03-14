@@ -1,122 +1,266 @@
-const { getEthClient, getTronWebInstance, from, pos } = require('../utils/utils')
-const {subtract, evaluate, log, pi, pow, round, sqrt} = require('mathjs')
+const { contractOwnerETHBSC,user } = require('../utils/config')
+const { write,find,remove } = require('../utils/publicMethods')
+const { getEthClient, pos } = require('../utils/utils')
 const BigNumber = require('bignumber.js')
 const wait = require('../utils/wait')
 const chai = require('chai')
 const assert = chai.assert
 const util = require('util')
-var web3 = require('web3')
-var fs = require('fs')
 
-const ethClient = getEthClient()
-const tronWeb = getTronWebInstance()
+const ethClientContractOwner = getEthClient(contractOwnerETHBSC.privateKey,contractOwnerETHBSC.address)
+const userPk = user.privateKey
+const userAddr = user.address
+let ethClient = getEthClient(userPk,userAddr)
 
 const erc20MainToken = pos.ETH.erc20Main
 const erc20SideToken = pos.ETH.erc20Side
 const erc20PredicateMain = pos.ETH.erc20Predicate
-const approveAmount = '9999999999999999999999'
+const merc20MainToken = pos.ETH.merc20Main
+const merc20SideToken = pos.ETH.merc20Side
+const merc20PredicateMain = pos.ETH.merc20Predicate
 
 describe('eth erc20 test', function() {
-    this.timeout(1000000)
-    describe('#mintable<-->no mintable', function() {
-        it('deposit', async function() {
-            // // approve
-            // transaction = await tronWeb.transactionBuilder.triggerConstantContract(erc20MainToken.replace('0x', '41'), 'allowance(address,address)', {},
-            //     [{type: 'address', value: from.replace('0x', '41')},{type: 'address', value: erc20PredicateMain.replace('0x', '41')}], from.replace('0x', '41'))
-            // if (tronWeb.BigNumber(transaction.constant_result, 16) < 100) {
-                const result = await ethClient.approveERC20ForDeposit(erc20MainToken, approveAmount, { from })
-                console.log('====approve-result===='+result)
-                await wait(10)
-            // }
+    this.timeout(2000000)
+    describe('#deposit & burn', function() {
+        const depositAmount = 1e8
+        describe('#no mint', function () {
+            it('deposit', async function() {
+                // approve
+                let allowance = await ethClient.getERC20Allowance(userAddr,erc20MainToken)
+                if (allowance < depositAmount) {
+                    const result = await ethClient.approveMaxERC20ForDeposit(erc20MainToken, {from:userAddr})
+                    console.log('====approve-result===='+result)
 
-            // balance before deposit
-            let userBalanceBeforeMain = await ethClient.balanceOfERC20(from, erc20MainToken, {parent:true})
-            console.log(`====userBalanceBeforeMain====`, userBalanceBeforeMain)
-            let userBalanceBeforeSide = await ethClient.balanceOfERC20(from, erc20SideToken, {parent:false})
-            console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
-            const predicateBalanceBeforeMain = await ethClient.balanceOfERC20(erc20PredicateMain, erc20MainToken, {parent:true})
-            console.log(`====predicateBalanceBeforeMain====`, predicateBalanceBeforeMain)
+                    do{
+                        await wait(20)
+                        allowance = await ethClient.getERC20Allowance(userAddr,erc20MainToken)
 
-            // deposit
-            const depositAmount = 100000000
-            const depositTx = await ethClient.depositERC20ForUser(erc20MainToken, from, depositAmount)
-            console.log(`====depositTx====`, depositTx)
-            let depositInfo
-            let userBalanceAfterSide
-            await wait(60)
-            while (true) {
-                const depositReceipt = ethClient.web3Client.getParentWeb3().eth.getTransactionReceipt(depositTx.transactionHash)
-                console.log(`====depositReceipt====`, depositReceipt)
-                if (!depositReceipt) {
-                    throw new Error('Transaction hash not found')
+                    }while(allowance < depositAmount)
                 }
-                userBalanceAfterSide = await ethClient.balanceOfERC20(from, erc20SideToken, {parent:false})
+
+                // balance before deposit
+                let userBalanceBeforeMain = await ethClient.balanceOfERC20(userAddr, erc20MainToken, {parent:true})
+                let ownerBalanceBefore = await ethClient.balanceOfERC20(contractOwnerETHBSC.address, erc20MainToken, {parent:true})
+                if (userBalanceBeforeMain < depositAmount) {
+                    let ownerBalanceAfter
+                    const mintAmount = 1e20
+                    ethClientContractOwner.mintERC20Token(erc20MainToken,mintAmount,{from:contractOwnerETHBSC.address,parent:false})
+                    do{
+                        await wait(20)
+                        ownerBalanceAfter = await ethClient.balanceOfERC20(contractOwnerETHBSC.address, erc20MainToken, {parent:true})
+                    }while(ownerBalanceAfter == ownerBalanceBefore)
+
+                    // transfer
+                    await ethClientContractOwner.transferERC20Tokens(erc20MainToken, userAddr, mintAmount, {from:contractOwnerETHBSC.address, parent:true})
+                    do{
+                        await wait(20)
+                        userBalanceBeforeMain = await ethClient.balanceOfERC20(userAddr, erc20MainToken, {parent:true})
+
+                    }while(userBalanceBeforeMain < depositAmount)
+                }
+                console.log(`====userBalanceBeforeMain====`, userBalanceBeforeMain)
+                let userBalanceBeforeSide = await ethClient.balanceOfERC20(userAddr, erc20SideToken, {parent:false})
+                console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
+                const predicateBalanceBeforeMain = await ethClient.balanceOfERC20(erc20PredicateMain, erc20MainToken, {parent:true})
+                console.log(`====predicateBalanceBeforeMain====`, predicateBalanceBeforeMain)
+
+                // deposit
+                const depositTx = await ethClient.depositERC20ForUser(erc20MainToken, userAddr, depositAmount)
+                console.log(`====depositTx====`, depositTx)
+                let depositInfo
+                let userBalanceAfterSide
+                await wait(60)
+                while (true) {
+                    userBalanceAfterSide = await ethClient.balanceOfERC20(userAddr, erc20SideToken, {parent:false})
+                    console.log(`====userBalanceAfterSide====`, userBalanceAfterSide)
+                    console.log(`====userBalanceAfterSide - userBalanceBeforeSide====`, new BigNumber(userBalanceAfterSide).minus(userBalanceBeforeSide).toString())
+                    if (new BigNumber(userBalanceAfterSide).minus(userBalanceBeforeSide).toString() > 0) {
+                        break
+                    } else {
+                        await wait(60)
+                        continue
+                    }
+                }
+
+                // balance after deposit
+                const userBalanceAfterMain = await ethClient.balanceOfERC20(userAddr, erc20MainToken, {parent:true})
+                console.log(`====userBalanceAfterMain====`, userBalanceAfterMain)
+                userBalanceAfterSide = await ethClient.balanceOfERC20(userAddr, erc20SideToken, {parent:false})
                 console.log(`====userBalanceAfterSide====`, userBalanceAfterSide)
-                console.log(`====userBalanceAfterSide - userBalanceBeforeSide====`, new BigNumber(userBalanceAfterSide).minus(userBalanceBeforeSide).toString())
-                if (new BigNumber(userBalanceAfterSide).minus(userBalanceBeforeSide).toString() > 0) {
-                    break
-                } else {
-                    await wait(60)
-                    continue
-                }
-            }
+                assert.equal(new BigNumber(userBalanceBeforeMain).minus(userBalanceAfterMain).toString(), depositAmount)
+                assert.equal(new BigNumber(userBalanceAfterSide).minus(userBalanceBeforeSide).toString(), depositAmount)
 
-            // balance after deposit
-            const userBalanceAfterMain = await ethClient.balanceOfERC20(from, erc20MainToken, {parent:true})
-            console.log(`====userBalanceAfterMain====`, userBalanceAfterMain)
-            userBalanceAfterSide = await ethClient.balanceOfERC20(from, erc20SideToken, {parent:false})
-            console.log(`====userBalanceAfterSide====`, userBalanceAfterSide)
-            assert.equal(new BigNumber(userBalanceBeforeMain).minus(userBalanceAfterMain).toString(), depositAmount)
-            assert.equal(new BigNumber(userBalanceAfterSide).minus(userBalanceBeforeSide).toString(), depositAmount)
-
-            const predicateBalanceAfterMain = await ethClient.balanceOfERC20(erc20PredicateMain, erc20MainToken, {parent:true})
-            console.log(`====predicateBalanceAfterMain====`, predicateBalanceAfterMain)
-            console.log(`====predicateBalanceAfterMain - predicateBalanceBeforeMain====`, new BigNumber(predicateBalanceAfterMain).minus(predicateBalanceBeforeMain).toString())
-        })
-        it('burn', async function() {
-            // balance before burn
-            let userBalanceBeforeSide = await ethClient.balanceOfERC20(from, erc20SideToken, {parent:false})
-            console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
-
-            // burn
-            const withdrawAmount = 1e8
-            const tx = await ethClient.burnERC20({ childToken: erc20SideToken, amount:withdrawAmount}, {
-                from: from,
-                gasPrice: 900000000000,
-                gas: 300000,
+                const predicateBalanceAfterMain = await ethClient.balanceOfERC20(erc20PredicateMain, erc20MainToken, {parent:true})
+                console.log(`====predicateBalanceAfterMain====`, predicateBalanceAfterMain)
+                assert.equal(new BigNumber(predicateBalanceAfterMain).minus(predicateBalanceBeforeMain).toString(), depositAmount)
             })
-            console.log(`====burnTx====`, tx)
+            it('burn', async function() {
+                let userBalanceBeforeSide = await ethClient.balanceOfERC20(userAddr, erc20SideToken, {parent:false})
+                console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
 
-            // balance after burn
-            let userBalanceAfterSide = await ethClient.balanceOfERC20(from, erc20SideToken, {parent:false})
-            console.log(`====userBalanceAfterSide====`, userBalanceAfterSide)
-            assert.equal(new BigNumber(userBalanceBeforeSide).minus(userBalanceAfterSide).toString(), withdrawAmount)
-            fs.writeFile('./burnRecord', '\n\reth-erc20BurnHash: '+tx.transactionHash,{ 'flag': 'a' }, function(error) {
-                if (error){
-                    console.log('写入burn记录失败')
-                }
+                // burn
+                const tx = await ethClient.burnERC20({ childToken: erc20SideToken, withdrawTo: true, amount:depositAmount, to:userAddr}, {
+                    from: userAddr,
+                    gasPrice: 900000000000,
+                    gas: 300000,
+                })
+                console.log(`====burnTx====`, tx)
+
+                // balance after burn
+                let userBalanceAfterBurnSide = await ethClient.balanceOfERC20(userAddr, erc20SideToken, {parent:false})
+                console.log(`====userBalanceAfterBurnSide====`, userBalanceAfterBurnSide)
+                assert.equal(new BigNumber(userBalanceBeforeSide).minus(userBalanceAfterBurnSide).toString(), depositAmount)
+
+                // write
+                assert.equal(await write('eth-erc20BurnHash:'+tx.transactionHash+',tokenAmount:'+depositAmount),true)
             })
         })
-        it('exit', async function() {
+        describe('#mint', function () {
+            it('deposit', async function() {
+                // approve
+                let allowance = await ethClient.getERC20Allowance(userAddr,merc20MainToken)
+                if (allowance < depositAmount) {
+                    const result = await ethClient.approveMaxERC20ForDeposit(merc20MainToken, {from:userAddr})
+                    console.log('====approve-result===='+result)
+
+                    do{
+                        await wait(20)
+                        allowance = await ethClient.getERC20Allowance(userAddr,merc20MainToken)
+
+                    }while(allowance < depositAmount)
+                }
+
+                // balance before deposit
+                let userBalanceBeforeMain = await ethClient.balanceOfERC20(userAddr, merc20MainToken, {parent:true})
+                let ownerBalanceBefore = await ethClient.balanceOfERC20(contractOwnerETHBSC.address, merc20MainToken, {parent:true})
+                if (userBalanceBeforeMain < depositAmount) {
+                    let ownerBalanceAfter
+                    const mintAmount = 1e20
+                    ethClientContractOwner.mintERC20Token(merc20MainToken,mintAmount,{from:contractOwnerETHBSC.address,parent:false})
+                    do{
+                        await wait(20)
+                        ownerBalanceAfter = await ethClient.balanceOfERC20(contractOwnerETHBSC.address, merc20MainToken, {parent:true})
+                    }while(ownerBalanceAfter == ownerBalanceBefore)
+
+                    // transfer
+                    await ethClientContractOwner.transferERC20Tokens(merc20MainToken, userAddr, mintAmount, {from:contractOwnerETHBSC.address, parent:true})
+                    do{
+                        await wait(20)
+                        userBalanceBeforeMain = await ethClient.balanceOfERC20(userAddr, merc20MainToken, {parent:true})
+
+                    }while(userBalanceBeforeMain < depositAmount)
+                }
+                console.log(`====userBalanceBeforeMain====`, userBalanceBeforeMain)
+                let userBalanceBeforeSide = await ethClient.balanceOfERC20(userAddr, merc20SideToken, {parent:false})
+                console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
+                const predicateBalanceBeforeMain = await ethClient.balanceOfERC20(merc20PredicateMain, merc20MainToken, {parent:true})
+                console.log(`====predicateBalanceBeforeMain====`, predicateBalanceBeforeMain)
+
+                // deposit
+                const depositTx = await ethClient.depositERC20ForUser(merc20MainToken, userAddr, depositAmount)
+                console.log(`====depositTx====`, depositTx)
+                let depositInfo
+                let userBalanceAfterSide
+                await wait(60)
+                while (true) {
+                    userBalanceAfterSide = await ethClient.balanceOfERC20(userAddr, merc20SideToken, {parent:false})
+                    console.log(`====userBalanceAfterSide====`, userBalanceAfterSide)
+                    console.log(`====userBalanceAfterSide - userBalanceBeforeSide====`, new BigNumber(userBalanceAfterSide).minus(userBalanceBeforeSide).toString())
+                    if (new BigNumber(userBalanceAfterSide).minus(userBalanceBeforeSide).toString() > 0) {
+                        break
+                    } else {
+                        await wait(60)
+                        continue
+                    }
+                }
+
+                // balance after deposit
+                const userBalanceAfterMain = await ethClient.balanceOfERC20(userAddr, merc20MainToken, {parent:true})
+                console.log(`====userBalanceAfterMain====`, userBalanceAfterMain)
+                userBalanceAfterSide = await ethClient.balanceOfERC20(userAddr, merc20SideToken, {parent:false})
+                console.log(`====userBalanceAfterSide====`, userBalanceAfterSide)
+                assert.equal(new BigNumber(userBalanceBeforeMain).minus(userBalanceAfterMain).toString(), depositAmount)
+                assert.equal(new BigNumber(userBalanceAfterSide).minus(userBalanceBeforeSide).toString(), depositAmount)
+
+                const predicateBalanceAfterMain = await ethClient.balanceOfERC20(merc20PredicateMain, merc20MainToken, {parent:true})
+                console.log(`====predicateBalanceAfterMain====`, predicateBalanceAfterMain)
+                assert.equal(new BigNumber(predicateBalanceAfterMain).minus(predicateBalanceBeforeMain).toString(), depositAmount)
+            })
+            it('burn', async function() {
+                let userBalanceBeforeSide = await ethClient.balanceOfERC20(userAddr, merc20SideToken, {parent:false})
+                console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
+
+                // burn
+                const tx = await ethClient.burnERC20({ childToken: merc20SideToken, withdrawTo: true, amount:depositAmount, to:userAddr}, {
+                    from: userAddr,
+                    gasPrice: 900000000000,
+                    gas: 300000,
+                })
+                console.log(`====burnTx====`, tx)
+
+                // balance after burn
+                let userBalanceAfterBurnSide = await ethClient.balanceOfERC20(userAddr, merc20SideToken, {parent:false})
+                console.log(`====userBalanceAfterBurnSide====`, userBalanceAfterBurnSide)
+                assert.equal(new BigNumber(userBalanceBeforeSide).minus(userBalanceAfterBurnSide).toString(), depositAmount)
+
+                // write
+                assert.equal(await write('eth-merc20BurnHash:'+tx.transactionHash+',tokenAmount:'+depositAmount),true)
+            })
+        })
+    })
+    describe('#exit', function() {
+        it('no mint exit', async function() {
             // balance before exit
-            let userBalanceBeforeMain = await ethClient.balanceOfERC20(from, erc20MainToken, {parent:true})
+            let userBalanceBeforeMain = await ethClient.balanceOfERC20(userAddr, erc20MainToken, {parent:true})
             console.log(`====userBalanceBeforeMain====`, userBalanceBeforeMain)
 
             // exit
-            const withdrawAmount = 1e8
-            const burnHash = '0x3b485e95614fa0bca6e0da5824d3c186efeb5379dca17235168d51a8e7f9fa2e'
+            let map = await find('eth-erc20BurnHash')
+            const burnHash = map.get('hash')
+            console.log("burnHash:"+burnHash)
+            const tokenAmount = map.get('tokenAmount')
             const tx = await ethClient.exitERC20(burnHash,{
-                from: from,
+                from: userAddr,
                 legacyProof: true,
                 parent: true,
             })
             console.log(`====exitTx====`, tx)
 
             // balance after exit
-            const userBalanceAfterMain = await ethClient.balanceOfERC20(from, erc20MainToken, {parent:true})
+            const userBalanceAfterMain = await ethClient.balanceOfERC20(userAddr, erc20MainToken, {parent:true})
             console.log(`====userBalanceAfterMain====`, userBalanceAfterMain)
-            assert.equal(new BigNumber(userBalanceAfterMain).minus(userBalanceBeforeMain).toString(), withdrawAmount)
+            assert.equal(new BigNumber(userBalanceAfterMain).minus(userBalanceBeforeMain).toString(), tokenAmount)
+
+            // remove
+            assert.equal(await remove(burnHash),true)
+        })
+        it('exit', async function() {
+            // balance before exit
+            let userBalanceBeforeMain = await ethClient.balanceOfERC20(userAddr, merc20MainToken, {parent:true})
+            console.log(`====userBalanceBeforeMain====`, userBalanceBeforeMain)
+
+            // exit
+            let map = await find('eth-merc20BurnHash')
+            const burnHash = map.get('hash')
+            console.log("burnHash:"+burnHash)
+            const tokenAmount = map.get('tokenAmount')
+            const tx = await ethClient.exitERC20(burnHash,{
+                from: userAddr,
+                legacyProof: true,
+                parent: true,
+            })
+            console.log(`====exitTx====`, tx)
+
+            // balance after exit
+            const userBalanceAfterMain = await ethClient.balanceOfERC20(userAddr, merc20MainToken, {parent:true})
+            console.log(`====userBalanceAfterMain====`, userBalanceAfterMain)
+            assert.equal(new BigNumber(userBalanceAfterMain).minus(userBalanceBeforeMain).toString(), tokenAmount)
+
+            // remove
+            assert.equal(await remove(burnHash),true)
         })
     })
-    // process.exit(0)
+    after(async function () {
+        process.exit()
+    })
 })

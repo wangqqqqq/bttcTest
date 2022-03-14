@@ -25,6 +25,13 @@ export default class SDKClient extends ContractsBase {
     this.web3Client.wallet = _wallet
   }
 
+  async balanceOfEther(addr: address, options?: SendOptions){
+    if (options && (!addr)) {
+      throw new Error('user address is missing')
+    }
+    return this.getEtherBalance(addr,options.parent)
+  }
+
   async balanceOfERC20(userAddress: address, token: address, options: SendOptions = {}) {
     if (!token || !userAddress) {
       throw new Error('token address or user address is missing')
