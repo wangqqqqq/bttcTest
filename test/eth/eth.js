@@ -16,8 +16,8 @@ const etherPredicateMain = pos.ETH.etherPredicate
 
 describe('eth eth test', function() {
     this.timeout(2000000)
-    const depositAmount = 1e8
     describe('#eth', function() {
+        const depositAmount = 1e8
         it('deposit', async function() {
             // balance before deposit
             let userBalanceBeforeMain = await ethClient.balanceOfEther(userAddr,{parent:true})
@@ -60,13 +60,12 @@ describe('eth eth test', function() {
             console.log(`====predicateBalanceAfterMain====`, predicateBalanceAfterMain)
             assert.equal(new BigNumber(predicateBalanceAfterMain).minus(predicateBalanceBeforeMain).toString(), depositAmount)
         })
-
         it('burn', async function() {
             let userBalanceBeforeSide = await ethClient.balanceOfERC20(userAddr, ethSideToken, {parent:false})
             console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
 
             // burn
-            const tx = await ethClient.burnERC20({ childToken: ethSideToken, withdrawTo: true, amount:depositAmount, to:userAddr}, {
+            const tx = await ethClient.burnERC20({childToken: ethSideToken, withdrawTo: true, amount:depositAmount, to:userAddr}, {
                 from: userAddr,
                 gasPrice: 900000000000,
                 gas: 300000,
@@ -80,9 +79,7 @@ describe('eth eth test', function() {
 
             // write
             assert.equal(await write('eth-ethBurnHash:'+tx.transactionHash+',tokenAmount:'+depositAmount),true)
-            process.exit(0)
         })
-
         it('exit', async function() {
             // balance before exit
             let userBalanceBeforeMain = await ethClient.balanceOfEther(userAddr,{parent:true})
@@ -97,13 +94,15 @@ describe('eth eth test', function() {
                 from: userAddr,
                 legacyProof: true,
                 parent: true,
+                gasPrice: 900000000000,
+                gas: 300000,
             })
             console.log(`====exitTx====`, tx)
 
             // balance after exit
             const userBalanceAfterMain = await ethClient.balanceOfEther(userAddr, {parent:true})
             console.log(`====userBalanceAfterMain====`, userBalanceAfterMain)
-            assert.equal(new BigNumber(userBalanceAfterMain).minus(userBalanceBeforeMain).toString(), tokenAmount)
+            assert.equal(new BigNumber(userBalanceAfterMain).minus(userBalanceBeforeMain).toString(), tokenAmount-tx.gasUsed*900000000000)
 
             // remove
             assert.equal(await remove(burnHash),true)

@@ -15,6 +15,7 @@ const tronClient = getTronWebClient(userPk,userAddr)
 
 const trxSideToken = pos.TRON.trxSide
 const etherPredicateMain = pos.TRON.etherPredicate
+const etherPredicateMainTron = etherPredicateMain.replace('0x','41')
 
 describe('tron trx test', function() {
     this.timeout(2000000)
@@ -26,9 +27,9 @@ describe('tron trx test', function() {
             console.log(`====userBalanceBeforeMain====`, userBalanceBeforeMain)
             let userBalanceBeforeSide = await tronClient.balanceOfERC20(userAddr, trxSideToken, {parent:false})
             console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
-            const predicateBalanceBeforeMain = await tronWeb.trx.getBalance(etherPredicateMain)
+            const predicateBalanceBeforeMain = await tronWeb.trx.getBalance(etherPredicateMainTron)
             console.log(`====predicateBalanceBeforeMain====`, predicateBalanceBeforeMain)
-
+            console.log('1122')
             // deposit
             const depositTx = await tronClient.depositEtherForUser(userAddr, depositAmount,{
                 from:userAddr,
@@ -63,11 +64,10 @@ describe('tron trx test', function() {
             assert.equal(new BigNumber(userBalanceBeforeMain).minus(userBalanceAfterMain).toString(), depositAmount+depositTxFee)
             assert.equal(new BigNumber(userBalanceAfterSide).minus(userBalanceBeforeSide).toString(), depositAmount)
 
-            const predicateBalanceAfterMain = await tronWeb.trx.getBalance(etherPredicateMain)
+            const predicateBalanceAfterMain = await tronWeb.trx.getBalance(etherPredicateMainTron)
             console.log(`====predicateBalanceAfterMain====`, predicateBalanceAfterMain)
             assert.equal(new BigNumber(predicateBalanceAfterMain).minus(predicateBalanceBeforeMain).toString(), depositAmount)
         })
-
         it('burn', async function() {
             let userBalanceBeforeSide = await tronClient.balanceOfERC20(userAddr, trxSideToken, {parent:false})
             console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
@@ -87,7 +87,6 @@ describe('tron trx test', function() {
 
             // write
             assert.equal(await write('tron-trxBurnHash:'+tx.transactionHash+',tokenAmount:'+depositAmount),true)
-            process.exit(0)
         })
 
         it('exit', async function() {

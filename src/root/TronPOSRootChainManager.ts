@@ -310,6 +310,106 @@ export default class POSRootChainManager extends TronContractsBase {
     return this.web3Client.send(txObject, web3Options, options)
   }
 
+  async mintERC20Tokens(rootToken: address, amount: BN | string, options?: SendOptions) {
+    const tronWebOptions = this.getParentERC20TokenContract(rootToken, true)
+    const contractAddress = this.utils.transferAddress(this.posRootChainManager.tronWeb, rootToken, false)
+    const contract = await tronWebOptions.web3.contract(tronWebOptions.abi, contractAddress)
+    /*const txObject = this.getPOSERC721TokenContract(rootToken, true).methods.approve(
+      predicate,
+      this.formatUint256(tokenId)
+    )*/
+    const txObject = await contract.methods.mint(this.formatUint256(amount))
+    const web3Options = await this.web3Client.fillOptions(txObject, true /* onRootChain */, options)
+    if (web3Options.encodeAbi) {
+      return Object.assign(web3Options, { data: txObject.encodeABI(), to: rootToken })
+    }
+    return this.web3Client.send(txObject, web3Options, options)
+  }
+
+  async mintERC20TokensTo(rootToken: address, to: address, amount: BN | string, options?: SendOptions) {
+    const tronWebOptions = this.getParentMintERC20TokenContract(rootToken, true)
+    const contractAddress = this.utils.transferAddress(this.posRootChainManager.tronWeb, rootToken, false)
+    const contract = await tronWebOptions.web3.contract(tronWebOptions.abi, contractAddress)
+    /*const txObject = this.getPOSERC721TokenContract(rootToken, true).methods.approve(
+      predicate,
+      this.formatUint256(tokenId)
+    )*/
+    const txObject = await contract.methods.mint(to, this.formatUint256(amount))
+    const web3Options = await this.web3Client.fillOptions(txObject, true /* onRootChain */, options)
+    if (web3Options.encodeAbi) {
+      return Object.assign(web3Options, { data: txObject.encodeABI(), to: rootToken })
+    }
+    return this.web3Client.send(txObject, web3Options, options)
+  }
+
+  async transferERC20Tokens(token: address, to: address, amount: BN | string, options?: SendOptions) {
+    const tronWebOptions = this.getERC20TokenContract(token, true)
+    const contractAddress = this.utils.transferAddress(this.posRootChainManager.tronWeb, token, false)
+    const contract = await tronWebOptions.web3.contract(tronWebOptions.abi, contractAddress)
+    /*const txObject = this.getPOSERC721TokenContract(rootToken, true).methods.approve(
+      predicate,
+      this.formatUint256(tokenId)
+    )*/
+    const txObject = await contract.methods.transferFrom(options.from, to, this.formatUint256(amount))
+    const web3Options = await this.web3Client.fillOptions(txObject, true /* onRootChain */, options)
+    if (web3Options.encodeAbi) {
+      return Object.assign(web3Options, { data: txObject.encodeABI(), to: token })
+    }
+    return this.web3Client.send(txObject, web3Options, options)
+  }
+
+  async mintERC721Tokens(rootToken: address, tokenId: BN | string, options?: SendOptions) {
+    const tronWebOptions = this.getParentERC721TokenContract(rootToken, true)
+    const contractAddress = this.utils.transferAddress(this.posRootChainManager.tronWeb, rootToken, false)
+    const contract = await tronWebOptions.web3.contract(tronWebOptions.abi, contractAddress)
+    /*const txObject = this.getPOSERC721TokenContract(rootToken, true).methods.approve(
+      predicate,
+      this.formatUint256(tokenId)
+    )*/
+    console.log('222: '+this.formatUint256(tokenId))
+    const txObject = await contract.methods.mint(this.formatUint256(tokenId))
+    const web3Options = await this.web3Client.fillOptions(txObject, true /* onRootChain */, options)
+    if (web3Options.encodeAbi) {
+      return Object.assign(web3Options, { data: txObject.encodeABI(), to: rootToken })
+    }
+    return this.web3Client.send(txObject, web3Options, options)
+  }
+
+  async mintERC721TokensTo(rootToken: address, to: address, tokenId: BN | string, options?: SendOptions) {
+    const tronWebOptions = this.getParentMintERC721TokenContract(rootToken, true)
+    const contractAddress = this.utils.transferAddress(this.posRootChainManager.tronWeb, rootToken, false)
+    const contract = await tronWebOptions.web3.contract(tronWebOptions.abi, contractAddress)
+    /*const txObject = this.getPOSERC721TokenContract(rootToken, true).methods.approve(
+      predicate,
+      this.formatUint256(tokenId)
+    )*/
+    const txObject = await contract.methods.mint(to, this.formatUint256(tokenId),0x0)
+    const web3Options = await this.web3Client.fillOptions(txObject, true /* onRootChain */, options)
+    if (web3Options.encodeAbi) {
+      return Object.assign(web3Options, { data: txObject.encodeABI(), to: rootToken })
+    }
+    console.log('txObject:'+util.inspect(txObject,true,null,true))
+    console.log('web3Options:'+util.inspect(web3Options))
+    console.log('options:'+util.inspect(options))
+    return this.web3Client.send(txObject, web3Options, options)
+  }
+
+  async transferERC721Tokens(token: address, to: address, tokenId: BN | string, options?: SendOptions) {
+    const tronWebOptions = this.getERC721TokenContract(token, true)
+    const contractAddress = this.utils.transferAddress(this.posRootChainManager.tronWeb, token, false)
+    const contract = await tronWebOptions.web3.contract(tronWebOptions.abi, contractAddress)
+    /*const txObject = this.getPOSERC721TokenContract(rootToken, true).methods.approve(
+      predicate,
+      this.formatUint256(tokenId)
+    )*/
+    const txObject = await contract.methods.transferFrom(options.from, to, this.formatUint256(tokenId))
+    const web3Options = await this.web3Client.fillOptions(txObject, true /* onRootChain */, options)
+    if (web3Options.encodeAbi) {
+      return Object.assign(web3Options, { data: txObject.encodeABI(), to: token })
+    }
+    return this.web3Client.send(txObject, web3Options, options)
+  }
+
   async isApprovedERC721(token: address, tokenId: BN | string, options?: SendOptions) {
     if (options && !token) {
       throw new Error('token address is missing')

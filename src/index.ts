@@ -398,6 +398,30 @@ export class TronWebClient extends TronSDKClient {
     return this.posRootChainManager.depositEtherForUser(amount, user, options)
   }
 
+  mintERC20Tokens(token: address, amount: BN | string, options?: SendOptions) {
+    if (options && (!token || !amount)) {
+      throw new Error('token or amount is missing')
+    }
+
+    return this.posRootChainManager.mintERC20Tokens(token, amount, options)
+  }
+
+  mintERC20TokensTo(token: address, to: address, amount: BN | string, options?: SendOptions) {
+    if (options && (!token || !amount)) {
+      throw new Error('token or amount is missing')
+    }
+
+    return this.posRootChainManager.mintERC20TokensTo(token, to, amount, options)
+  }
+
+  transferERC20Tokens(token: address, to: address, amount: BN | string, options?: SendOptions) {
+    if (options && (!token || !to || !amount)) {
+      throw new Error('token , to, or amount is missing')
+    }
+
+    return this.posRootChainManager.transferERC20Tokens(token, to, amount, options)
+  }
+
   burnERC20(option: burnErc20Options, options?: SendOptions) {
     if (!this.web3Client.web3.utils.isAddress(option.childToken)) {
       throw new Error(`${option.childToken} is not a valid token address`)
@@ -477,6 +501,30 @@ export class TronWebClient extends TronSDKClient {
       throw new Error('Number of tokens being deposited can not exceed the limit of 20')
     }
     return this.posRootChainManager.depositBatchERC721ForUser(rootToken, tokenIds, user, options)
+  }
+
+  mintERC721Tokens(token: address, tokenId: BN | string, options?: SendOptions) {
+    if (options && (!token || !tokenId)) {
+      throw new Error('token or tokenId is missing')
+    }
+
+    return this.posRootChainManager.mintERC721Tokens(token, tokenId, options)
+  }
+
+  mintERC721TokensTo(token: address, to: address, tokenId: BN | string, options?: SendOptions) {
+    if (options && (!token || !tokenId)) {
+      throw new Error('token or tokenId is missing')
+    }
+
+    return this.posRootChainManager.mintERC721TokensTo(token, to, tokenId, options)
+  }
+
+  transferERC721Tokens(token: address, to: address, tokenId: BN | string, options?: SendOptions) {
+    if (options && (!token || !to || !tokenId)) {
+      throw new Error('token , to, or tokenId is missing')
+    }
+
+    return this.posRootChainManager.transferERC721Tokens(token, to, tokenId, options)
   }
 
   burnERC721(opt: burnErc721Options, options?: SendOptions) {

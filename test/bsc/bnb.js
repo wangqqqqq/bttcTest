@@ -16,8 +16,8 @@ const etherPredicateMain = pos.BSC.etherPredicate
 
 describe('bsc bnb test', function() {
     this.timeout(2000000)
-    const depositAmount = 1e8
     describe('#bnb', function() {
+        const depositAmount = 1e8
         it('deposit', async function() {
             // balance before deposit
             let userBalanceBeforeMain = await bscClient.balanceOfEther(userAddr,{parent:true})
@@ -60,13 +60,12 @@ describe('bsc bnb test', function() {
             console.log(`====predicateBalanceAfterMain====`, predicateBalanceAfterMain)
             assert.equal(new BigNumber(predicateBalanceAfterMain).minus(predicateBalanceBeforeMain).toString(), depositAmount)
         })
-
         it('burn', async function() {
             let userBalanceBeforeSide = await bscClient.balanceOfERC20(userAddr, bnbSideToken, {parent:false})
             console.log(`====userBalanceBeforeSide====`, userBalanceBeforeSide)
 
             // burn
-            const tx = await bscClient.burnERC20({ childToken: bnbSideToken, withdrawTo: true, amount:depositAmount, to:userAddr}, {
+            const tx = await bscClient.burnERC20({childToken: bnbSideToken, withdrawTo: true, amount:depositAmount, to:userAddr}, {
                 from: userAddr,
                 gasPrice: 900000000000,
                 gas: 300000,
@@ -82,7 +81,6 @@ describe('bsc bnb test', function() {
             assert.equal(await write('bsc-bnbBurnHash:'+tx.transactionHash+',tokenAmount:'+depositAmount),true)
             process.exit(0)
         })
-
         it('exit', async function() {
             // balance before exit
             let userBalanceBeforeMain = await bscClient.balanceOfEther(userAddr,{parent:true})
@@ -97,13 +95,15 @@ describe('bsc bnb test', function() {
                 from: userAddr,
                 legacyProof: true,
                 parent: true,
+                gasPrice: 20000000000,
+                gas: 300000,
             })
             console.log(`====exitTx====`, tx)
 
             // balance after exit
             const userBalanceAfterMain = await bscClient.balanceOfEther(userAddr, {parent:true})
             console.log(`====userBalanceAfterMain====`, userBalanceAfterMain)
-            assert.equal(new BigNumber(userBalanceAfterMain).minus(userBalanceBeforeMain).toString(), tokenAmount)
+            assert.equal(new BigNumber(userBalanceAfterMain).minus(userBalanceBeforeMain).toString(), tokenAmount-tx.gasUsed*20000000000)
 
             // remove
             assert.equal(await remove(burnHash),true)

@@ -63,6 +63,25 @@ export default class TronSDKClient extends TronContractsBase {
     }
   }
 
+  async isExistsMintERC721(token: address, tokenId: string, options?: SendOptions) {
+    if (options && (!tokenId || !token)) {
+      throw new Error('token or tokenId is missing')
+    }
+
+    if (options.parent) {
+      const tronWebOptions = this.getParentMintERC721TokenContract(token, options.parent)
+      const contractAddress = this.utils.transferAddress(tronWebOptions.web3, token, false)
+      const contract = await tronWebOptions.web3.contract(tronWebOptions.abi, contractAddress)
+      const isExists = await contract.methods.exists(tokenId).call()
+      //Smart contract is missing address
+      return isExists
+    } else {
+      return this.getParentMintERC721TokenContract(token, options.parent)
+      .methods.exists(tokenId)
+      .call()
+    }
+  }
+
   async ownerOfERC721(token: address, tokenId: string, options?: SendOptions) {
     if (options && (!tokenId || !token)) {
       throw new Error('token or tokenId is missing')
@@ -98,31 +117,6 @@ export default class TronSDKClient extends TronContractsBase {
         .methods.tokenOfOwnerByIndex(userAddress, index)
         .call()
     }
-  }
-
-  async transferERC20Tokens(token: address, to: address, amount: BN | string, options?: SendOptions) {
-    if (options && (!options.from || !amount || !token || !to)) {
-      throw new Error('options.from, to, token or amount is missing')
-    }
-    let txObject = null
-    if (options.parent) {
-      const tronWebOptions = this.getERC20TokenContract(token, options.parent)
-      const contractAddress = this.utils.transferAddress(tronWebOptions.web3, token, false)
-      const contract = await tronWebOptions.web3.contract(tronWebOptions.abi, contractAddress)
-      txObject = await contract.methods.transfer(to, this.encode(amount)).call()
-      //Smart contract is missing address
-    } else {
-      txObject = this.getERC20TokenContract(token, options.parent)
-        .methods.transfer(to, this.encode(amount))
-        .call()
-    }
-    //const txObject = this.getERC20TokenContract(token, options.parent).methods.transfer(to, this.encode(amount))
-    const onRootChain = options.parent ? true : false
-    const web3Options = await this.web3Client.fillOptions(txObject, onRootChain, options)
-    if (web3Options.encodeAbi) {
-      return Object.assign(web3Options, { data: txObject.encodeABI(), to: token })
-    }
-    return this.web3Client.send(txObject, web3Options, options)
   }
 
   async transferERC721Tokens(token: address, to: address, tokenId: string, options?: SendOptions) {

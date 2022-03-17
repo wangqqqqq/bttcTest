@@ -1,6 +1,8 @@
+const { getTronWebInstance } = require('./utils')
 const HashMap = require('hashmap') ;
 const util = require('util');
 var fs = require('fs')
+const tronWeb = getTronWebInstance()
 
 /**
  * @param content
@@ -50,11 +52,8 @@ const remove = async (content) => {
                 console.log('读取记录失败')
             } else {
                 const array = data.toString().split("\n")
-                console.log("content: "+content)
                 for(i in array) {
-                    console.log("array[i]: "+array[i])
                     if (array[i].includes(content)) {
-                        console.log("baohan")
                         const newData = data.toString().replace(array[i],'')
                         fs.writeFile('./burnRecord', newData, function(error) {
                             if (error){
@@ -70,9 +69,50 @@ const remove = async (content) => {
     })
 }
 
+const broadcaster = async (func, pk, transaction) => {
+    if( !transaction) {
+        transaction = await func;
+    }
+    // console.log("transaction:"+util.inspect(transaction))
+    const signedTransaction = await tronWeb.trx.sign(transaction, pk);
+    // console.log("signedTransaction:"+util.inspect(signedTransaction))
+    let result = {
+        transaction,
+        signedTransaction,
+        receipt: await tronWeb.trx.sendRawTransaction(signedTransaction)
+    };
+
+    let times = 0;
+    while (times++ <= 10 && result.receipt.toString().indexOf("code") != -1 &&
+    result.receipt.code == "SERVER_BUSY") {
+        console.log("retry num is " + times);
+        result = {
+            transaction,
+            signedTransaction,
+            receipt: await tronWeb.trx.sendRawTransaction(signedTransaction)
+        };
+        await wait(1);
+    }
+    return Promise.resolve(result);
+}
+
+const to64Bytes = async (str) =>{
+    let num = tronWeb.toHex(str)
+    num = num.replace('0x', '')
+    const l = num.length;
+    let sres = "0x";
+    for (var i =0 ; i < 64 -l;i++ ){
+        sres +="0";
+    }
+    sres += num;
+    return sres;
+}
+
 module.exports = {
     write,
     find,
-    remove
+    remove,
+    broadcaster,
+    to64Bytes
 }
 

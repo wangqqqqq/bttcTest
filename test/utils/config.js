@@ -22,8 +22,14 @@ module.exports = {
       trxMain:'0xff00000000000000000000000000000000000001',
       trxSide:'0x555731d4118d92be327f8747d6e85f22d8194802',
 
-      erc20Main: '0x877512DEB5ED8061624C72A2441A4F12FC2A73D0',// BTT
-      erc20Side: '0x0000000000000000000000000000000000001010',// BTT
+      BTTMain: '0x877512DEB5ED8061624C72A2441A4F12FC2A73D0',// BTT
+      BTTSide: '0x0000000000000000000000000000000000001010',
+
+      USDTMain:'0xECA9BC828A3005B9A3B909F2CC5C2A54794DE05F',// USDT
+      USDTSide:'0x6f61237352211CEc83171001b80CA92a441672AD',
+
+      erc20Main:'0x6CA6C38D23003A9F1EE68D2CBEAFAA6B61F6EEBF',
+      erc20Side:'0xE11838E9d624DbA2f861DBc167374bDAaAe6E57d',
 
       merc20Main: '0xEA7DF080AFE2FDC6CAE509A237317DA90994890E',
       merc20Side: '0xfB01238F23c4aC473bC38222d7c54D0129c88eBA',
@@ -34,11 +40,11 @@ module.exports = {
       merc721Main: '0x2FA5B0E4CD227A914293EAD542DF3A5EB064B2C5',
       merc721Side: '0x3af62930173773403E66D8489718e86D3935A6bb',
 
-      etherPredicate: 'TQTtCPLNFjhZXTSHWbgo7gq9kYRwGNma9F',
-      erc20Predicate: 'TWmPxvPTCErg6bor9L4GGznxbtVnVVXggw',
-      merc20Predicate: 'TAJdHZM1m4sNvftDU8wVddouW8wRB9kXdU',
-      erc721Predicate: 'TVWx8w5tkwtKQA5TuQN2RszTx46wp4ZCor',
-      merc721Predicate: 'TKCn7HNHC5iG7mMjrmqrSKLbdcV6aWrzeT',
+      etherPredicate: '0x9EFE2061469D3DDCF1B4E8F3F9514897A9107368',
+      erc20Predicate: '0xE41ECD2E5BD49A8EBAA62F540CEE653028D307EF',
+      merc20Predicate: '0x03AC2CC857E8A67D74064DE0C204E288D10864A7',
+      erc721Predicate: '0xD66B4AE9C5F86A2838565D8A2C7D30257A3AC655',
+      merc721Predicate: '0x654A2D180D01EE73AF2671A306892886FBCCFCE9',
 
     },
     ETH: {
@@ -109,8 +115,8 @@ module.exports = {
     address: '0x60F68C9B9E505946CF5102378FB55F07B812B819',
   },
   tronWebOptions: {
-    privateKey: '33b343db0027b39b663aa1fcefebb7c45412be99ef1e3ca0fe681ab549336e58',
-    address: 'TAW2WU2HZhCMsiDaLjHy3w2ksgCRNAhyya', // A sample address prefix with `T`
+    privateKey: '4df12b6b37734c521eadc4ce5811f27f40e8bae8d43d32804dbf580d40aebcd7',
+    address: 'TGQVLckg1gDZS5wUwPTrPgRG4U8MKC4jcP', // A sample address prefix with `T`
     fullNode: 'https://api.nileex.io',
     solidityNode: 'https://api.nileex.io',
     eventServer: 'https://event.nileex.io',
